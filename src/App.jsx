@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Printer, Upload, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, RotateCcw, LogOut, Loader2, AlertCircle, User, Lock, Heart } from 'lucide-react';
+import { Search, Printer, Upload, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, RotateCcw, LogOut,
+  Loader2, AlertCircle, User, Lock, Heart, FileImage, CreditCard } from 'lucide-react';
 
 /**
  * HELPER: Safe Environment Variable Access
@@ -22,10 +23,7 @@ const getEnv = (key, defaultValue) => {
  */
 const CONFIG = {
   API_BASE: 'https://lokal.stai-ali.ac.id/db_api/',
-  
-  // Login menggunakan Environment Variables (Vite)
-    //u: getEnv('VITE_LOGIN_USER', 'admin'), 
-    //p: getEnv('VITE_LOGIN_PASS', 'admin') 
+
   CREDENTIALS: { 
     u: getEnv('VITE_LOGIN_USER', ''), 
     p: getEnv('VITE_LOGIN_PASS', '') 
@@ -34,6 +32,10 @@ const CONFIG = {
   // Path gambar
   LOGIN_BANNER: '/login.png', 
   APP_LOGO: '/logo.png', // Logo untuk Header
+  
+  // Asset Kartu
+  CARD_IMG_FRONT: '/KARTU_FRONT.png',
+  CARD_IMG_REAR: '/KARTU_REAR.png',
 
   CARD: {
     w: 85.6, 
@@ -166,7 +168,19 @@ function LoginPage({ onLogin }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (u === CONFIG.CREDENTIALS.u && p === CONFIG.CREDENTIALS.p) {
+    
+    // Try fix cek
+    const serverUser = CONFIG.CREDENTIALS.u;
+    const serverPass = CONFIG.CREDENTIALS.p;
+
+    // 1. Jika Secret Kosong (Belum diset di Codespace/Repo), tolak akses
+    if (!serverUser || !serverPass) {
+      setErr('Konfigurasi Keamanan Server (Secret) belum diset. Hubungi Administrator.');
+      return;
+    }
+
+    // 2. Cek Username & Password
+    if (u === serverUser && p === serverPass) {
       onLogin();
     } else {
       setErr('Username atau password salah');
@@ -402,6 +416,8 @@ function PrintPage({ student, onBack }) {
   const [ox, setOx] = useState(0);
   const [oy, setOy] = useState(0);
   const [photo, setPhoto] = useState(null);
+  // STATE BARU: Switcher Depan/Belakang
+  const [cardSide, setCardSide] = useState('front'); // 'front' | 'rear'
   const fileInputRef = useRef(null);
 
   const handlePhotoUpload = (e) => {
@@ -448,6 +464,22 @@ function PrintPage({ student, onBack }) {
         <button onClick={onBack} className="text-slate-500 hover:text-emerald-600 flex items-center gap-2 font-bold transition">
           <ArrowLeft size={18}/> Kembali
         </button>
+
+        {/* FITUR BARU: Switcher Sisi Kartu di Header Mobile/Desktop */}
+        <div className="flex bg-white border border-emerald-100 rounded-lg p-1 shadow-sm">
+          <button 
+            onClick={() => setCardSide('front')}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 ${cardSide === 'front' ? 'bg-emerald-500 text-white shadow' : 'text-slate-500 hover:bg-slate-50'}`}
+          >
+            <CreditCard size={16}/> Sisi Depan
+          </button>
+          <button 
+            onClick={() => setCardSide('rear')}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 ${cardSide === 'rear' ? 'bg-emerald-500 text-white shadow' : 'text-slate-500 hover:bg-slate-50'}`}
+          >
+            <FileImage size={16}/> Sisi Belakang
+          </button>
+        </div>
         <button 
           onClick={() => window.print()} 
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition transform hover:-translate-y-0.5 active:translate-y-0"
@@ -488,68 +520,89 @@ function PrintPage({ student, onBack }) {
           `}</style>
 
           <div className="card-area" style={cardStyle}>
-            <img src="/img/KARTU_FRONT.png" alt="Template Background" className="card-bg" onError={(e) => e.target.style.display='none'} />
-            {photo ? (
-              <img src={photo} className="card-photo" alt="Foto Siswa" />
+            {cardSide === 'front' ? (
+              // === TAMPILAN DEPAN ===
+              <>
+                <img src={CONFIG.CARD_IMG_FRONT} alt="KTM Depan" className="card-bg" onError={(e) => e.target.style.display='none'} />
+                {photo ? (
+                  <img src={photo} className="card-photo" alt="Foto Siswa" />
+                ) : (
+                  <div className="card-photo flex items-center justify-center text-xs text-gray-500 text-center p-2 bg-slate-200">No Photo</div>
+                )}
+                <div className="card-txt" style={{ top: `calc(95mm + var(--oy))`, textAlign: 'center', fontSize: '3.8mm', fontWeight: 800 }}>{student.nim}</div>
+                <div className="card-txt" style={{ top: `calc(100mm + var(--oy))`, textAlign: 'center', fontSize: '3.6mm', fontWeight: 800 }}>{student.nama}</div>
+                <div className="card-txt" style={{ top: `calc(105mm + var(--oy))`, textAlign: 'center', fontSize: '3.2mm', fontWeight: 700 }}>{student.fakultas}</div>
+                <div className="card-txt" style={{ top: `calc(110mm + var(--oy))`, textAlign: 'center', fontSize: '3.2mm', fontWeight: 700 }}>{student.prodi}</div>
+              </>
             ) : (
-              <div className="card-photo flex items-center justify-center text-xs text-gray-500 text-center p-2 bg-slate-200">No Photo</div>
+              // === TAMPILAN BELAKANG ===
+              <>
+                <img src={CONFIG.CARD_IMG_REAR} alt="KTM Belakang" className="card-bg" onError={(e) => e.target.style.display='none'} />
+                {/* Biasanya bagian belakang hanya gambar tata tertib/barcode statis tanpa biodata overlay */}
+              </>
             )}
-            <div className="card-txt" style={{ top: `calc(95mm + var(--oy))`, textAlign: 'center', fontSize: '3.8mm', fontWeight: 800 }}>{student.nim}</div>
-            <div className="card-txt" style={{ top: `calc(100mm + var(--oy))`, textAlign: 'center', fontSize: '3.6mm', fontWeight: 800 }}>{student.nama}</div>
-            <div className="card-txt" style={{ top: `calc(105mm + var(--oy))`, textAlign: 'center', fontSize: '3.2mm', fontWeight: 700 }}>{student.fakultas}</div>
-            <div className="card-txt" style={{ top: `calc(110mm + var(--oy))`, textAlign: 'center', fontSize: '3.2mm', fontWeight: 700 }}>{student.prodi}</div>
           </div>
-          <p className="mt-4 text-center text-xs text-slate-400 font-medium print:hidden">Tampilan Pratinjau</p>
+          
+          <p className="mt-4 text-center text-xs text-slate-400 font-medium print:hidden">
+            Pratinjau: <b>{cardSide === 'front' ? 'Sisi Depan' : 'Sisi Belakang'}</b>
+          </p>
         </div>
 
-        <div className="w-full md:w-80 space-y-6 print:hidden">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide">
-              <Upload size={16} className="text-emerald-500"/> Upload Foto
-            </h4>
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-emerald-200 rounded-xl p-6 text-center cursor-pointer hover:bg-emerald-50/50 hover:border-emerald-400 transition group"
-            >
-              {photo ? (
-                <div className="space-y-3">
-                  <img src={photo} className="w-24 h-32 object-cover mx-auto rounded-lg shadow-md group-hover:scale-105 transition" />
-                  <p className="text-xs text-emerald-600 font-bold bg-emerald-100 inline-block px-2 py-1 rounded">Ganti Foto</p>
-                </div>
-              ) : (
-                <div className="text-slate-400 py-4">
-                  <User className="mx-auto mb-2 text-emerald-200" size={32}/>
-                  <p className="text-sm font-medium text-slate-600">Klik cari foto</p>
-                  <p className="text-[10px] mt-1 text-slate-400">(Format JPG/PNG)</p>
-                </div>
-              )}
+        {/* SIDEBAR KONTROL (Hanya muncul jika Sisi Depan yang dipilih) */}
+        {cardSide === 'front' ? (
+          <div className="w-full md:w-80 space-y-6 print:hidden">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+              <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide">
+                <Upload size={16} className="text-emerald-500"/> Upload Foto
+              </h4>
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-emerald-200 rounded-xl p-6 text-center cursor-pointer hover:bg-emerald-50/50 hover:border-emerald-400 transition group"
+              >
+                {photo ? (
+                  <div className="space-y-3">
+                    <img src={photo} className="w-24 h-32 object-cover mx-auto rounded-lg shadow-md group-hover:scale-105 transition" />
+                    <p className="text-xs text-emerald-600 font-bold bg-emerald-100 inline-block px-2 py-1 rounded">Ganti Foto</p>
+                  </div>
+                ) : (
+                  <div className="text-slate-400 py-4">
+                    <User className="mx-auto mb-2 text-emerald-200" size={32}/>
+                    <p className="text-sm font-medium text-slate-600">Klik cari foto</p>
+                    <p className="text-[10px] mt-1 text-slate-400">(Format JPG/PNG)</p>
+                  </div>
+                )}
+              </div>
+              <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" className="hidden" />
             </div>
-            <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" className="hidden" />
-          </div>
 
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Kalibrasi</h4>
-              <button onClick={() => { setOx(0); setOy(0); }} title="Reset" className="text-slate-400 hover:text-emerald-500 transition bg-slate-100 p-1.5 rounded-md">
-                <RotateCcw size={14}/>
-              </button>
-            </div>
-            <div className="bg-slate-800 text-emerald-400 p-3 rounded-lg mb-4 text-center font-mono text-sm tracking-widest border border-slate-700 shadow-inner">
-              X: {ox} <span className="text-slate-600">|</span> Y: {oy}
-            </div>
-            <div className="grid grid-cols-3 gap-2 max-w-[160px] mx-auto">
-              <div></div>
-              <button onClick={() => nudge(0, -0.5)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowUp size={18}/></button>
-              <div></div>
-              <button onClick={() => nudge(-0.5, 0)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowLeft size={18}/></button>
-              <div className="flex items-center justify-center text-slate-300"><Printer size={16}/></div>
-              <button onClick={() => nudge(0.5, 0)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowRight size={18}/></button>
-              <div></div>
-              <button onClick={() => nudge(0, 0.5)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowDown size={18}/></button>
-              <div></div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Kalibrasi</h4>
+                <button onClick={() => { setOx(0); setOy(0); }} title="Reset" className="text-slate-400 hover:text-emerald-500 transition bg-slate-100 p-1.5 rounded-md">
+                  <RotateCcw size={14}/>
+                </button>
+              </div>
+              <div className="bg-slate-800 text-emerald-400 p-3 rounded-lg mb-4 text-center font-mono text-sm tracking-widest border border-slate-700 shadow-inner">
+                X: {ox} <span className="text-slate-600">|</span> Y: {oy}
+              </div>
+              <div className="grid grid-cols-3 gap-2 max-w-[160px] mx-auto">
+                <div></div>
+                <button onClick={() => nudge(0, -0.5)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowUp size={18}/></button>
+                <div></div>
+                <button onClick={() => nudge(-0.5, 0)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowLeft size={18}/></button>
+                <div className="flex items-center justify-center text-slate-300"><Printer size={16}/></div>
+                <button onClick={() => nudge(0.5, 0)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowRight size={18}/></button>
+                <div></div>
+                <button onClick={() => nudge(0, 0.5)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowDown size={18}/></button>
+                <div></div>
+              </div>
             </div>
           </div>
-        </div>
+      ) : (
+          <div className="w-full md:w-80 space-y-6 print:hidden flex items-center justify-center text-slate-400 text-sm italic border-l pl-6">
+            Fitur edit (foto & kalibrasi) hanya tersedia untuk sisi depan kartu.
+          </div>
+        )}
       </div>
     </div>
   );
