@@ -38,8 +38,10 @@ const CONFIG = {
   CARD_IMG_REAR: '/KARTU_REAR.png',
 
   CARD: {
-    w: 85.6, 
-    h: 120,
+    w: 85.6,
+    // UPDATE: Tinggi disesuaikan ke 135.6mm agar proporsional dengan CR-80 Portrait (54x86mm)
+    // saat width diset 85.6mm. (Rasio 1.58)
+    h: 135.6, 
     photo: { x: 28, y: 54, w: 27.5, h: 37, radius: 2 }
   }
 };
