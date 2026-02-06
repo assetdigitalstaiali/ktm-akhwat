@@ -27,8 +27,8 @@ const CONFIG = {
     //u: getEnv('VITE_LOGIN_USER', 'admin'), 
     //p: getEnv('VITE_LOGIN_PASS', 'admin') 
   CREDENTIALS: { 
-    u: getEnv('VITE_LOGIN_USER', getEnv('KTM_ADMIN_USERNAME')), 
-    p: getEnv('VITE_LOGIN_PASS', getEnv('KTM_ADMIN_PASSWORD')) 
+    u: getEnv('VITE_LOGIN_USER', ''), 
+    p: getEnv('VITE_LOGIN_PASS', '') 
   }, 
   
   // Path gambar
