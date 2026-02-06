@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/ur_repo_name/',
+  base: '/ktm-akhwat/',
   //tambahkan ini jika library berat contoh Markdown
   /* build: {
     // Menaikkan batas peringatan menjadi 1000 kB (1 MB) agar tidak terlalu sensitif

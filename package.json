@@ -1,9 +1,9 @@
 {
-  "name": "ur_repo_name",
+  "name": "ktm-akhwat",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "muhammadandykmaulana.github.io/ur_repo_name",
+  "homepage": "https://assetdigitalstaiali.github.io/ktm-akhwat",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
