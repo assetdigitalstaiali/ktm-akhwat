@@ -531,10 +531,11 @@ function PrintPage({ student, onBack }) {
                 ) : (
                   <div className="card-photo flex items-center justify-center text-xs text-gray-500 text-center p-2 bg-slate-200">No Photo</div>
                 )}
-                <div className="card-txt" style={{ top: `calc(95mm + var(--oy))`, textAlign: 'center', fontSize: '3.8mm', fontWeight: 800 }}>{student.nim}</div>
-                <div className="card-txt" style={{ top: `calc(100mm + var(--oy))`, textAlign: 'center', fontSize: '3.6mm', fontWeight: 800 }}>{student.nama}</div>
-                <div className="card-txt" style={{ top: `calc(105mm + var(--oy))`, textAlign: 'center', fontSize: '3.2mm', fontWeight: 700 }}>{student.fakultas}</div>
-                <div className="card-txt" style={{ top: `calc(110mm + var(--oy))`, textAlign: 'center', fontSize: '3.2mm', fontWeight: 700 }}>{student.prodi}</div>
+                {/* UPDATE POSISI TEKS (Ditambah 8mm ke bawah sesuai kalibrasi Y:8) */}
+                <div className="card-txt" style={{ top: `calc(103mm + var(--oy))`, textAlign: 'center', fontSize: '3.8mm', fontWeight: 800 }}>{student.nim}</div>
+                <div className="card-txt" style={{ top: `calc(108mm + var(--oy))`, textAlign: 'center', fontSize: '3.6mm', fontWeight: 800 }}>{student.nama}</div>
+                <div className="card-txt" style={{ top: `calc(113mm + var(--oy))`, textAlign: 'center', fontSize: '3.2mm', fontWeight: 700 }}>{student.fakultas}</div>
+                <div className="card-txt" style={{ top: `calc(118mm + var(--oy))`, textAlign: 'center', fontSize: '3.2mm', fontWeight: 700 }}>{student.prodi}</div>
               </>
             ) : (
               // === TAMPILAN BELAKANG ===
