@@ -504,7 +504,8 @@ function PrintPage({ student, onBack }) {
               position: absolute; left: var(--photo-x); top: var(--photo-y);
               width: var(--photo-w); height: var(--photo-h);
               border-radius: var(--photo-r); object-fit: cover;
-              border: 1mm solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.25); background: #ddd;
+              border: 0.5mm solid #fff;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.25); background: #ddd;
             }
             .card-txt {
               position: absolute; width: 100%; color: #ffffff;
