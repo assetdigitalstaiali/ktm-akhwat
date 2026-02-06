@@ -34,8 +34,8 @@ const CONFIG = {
   APP_LOGO: '/logo.png', // Logo untuk Header
   
   // Asset Kartu
-  CARD_IMG_FRONT: '/KARTU_FRONT.png',
-  CARD_IMG_REAR: '/KARTU_REAR.png',
+  CARD_IMG_FRONT: '/KARTU_FRONT_ID.png',
+  CARD_IMG_REAR: '/KARTU_REAR_ID.png',
 
   CARD: {
     w: 85.6,
