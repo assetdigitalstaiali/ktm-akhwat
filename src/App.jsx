@@ -42,6 +42,7 @@ const CONFIG = {
     // UPDATE: Tinggi disesuaikan ke 135.6mm agar proporsional dengan CR-80 Portrait (54x86mm)
     // saat width diset 85.6mm. (Rasio 1.58)
     h: 135.6, 
+    // Posisi Foto (Sesuai Kalibrasi X:1, Y:8 -> 29, 62)
     photo: { x: 29, y: 62, w: 27.5, h: 37, radius: 2 }
   }
 };
@@ -462,29 +463,44 @@ function PrintPage({ student, onBack }) {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="w-full max-w-4xl mb-6 flex justify-between items-center print:hidden">
-        <button onClick={onBack} className="text-slate-500 hover:text-emerald-600 flex items-center gap-2 font-bold transition">
-          <ArrowLeft size={18}/> Kembali
-        </button>
-
-        {/* FITUR BARU: Switcher Sisi Kartu di Header Mobile/Desktop */}
-        <div className="flex bg-white border border-emerald-100 rounded-lg p-1 shadow-sm">
+            {/* HEADER CONTROLS - RESPONSIVE (Stacked on Mobile) */}
+      <div className="w-full max-w-4xl mb-6 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
+        
+        {/* Tombol Back & Print Mobile Only */}
+        <div className="w-full md:w-auto flex justify-between items-center gap-4">
+          <button onClick={onBack} className="text-slate-500 hover:text-emerald-600 flex items-center gap-2 font-bold transition">
+            <ArrowLeft size={18}/> Kembali
+          </button>
+          
+          {/* Tombol Print khusus Mobile (agar mudah dijangkau) */}
+          <button 
+            onClick={() => window.print()} 
+            className="md:hidden bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-bold shadow-lg flex items-center gap-2 text-sm"
+          >
+            <Printer size={18}/> PRINT
+          </button>
+        </div>
+        
+        {/* Switcher Front/Rear */}
+        <div className="flex bg-white border border-emerald-100 rounded-lg p-1 shadow-sm w-full md:w-auto justify-center">
           <button 
             onClick={() => setCardSide('front')}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 ${cardSide === 'front' ? 'bg-emerald-500 text-white shadow' : 'text-slate-500 hover:bg-slate-50'}`}
+            className={`flex-1 md:flex-none px-6 py-2 rounded-md text-sm font-medium transition flex justify-center items-center gap-2 ${cardSide === 'front' ? 'bg-emerald-500 text-white shadow' : 'text-slate-500 hover:bg-slate-50'}`}
           >
-            <CreditCard size={16}/> Sisi Depan
+            <CreditCard size={16}/> Front
           </button>
           <button 
             onClick={() => setCardSide('rear')}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 ${cardSide === 'rear' ? 'bg-emerald-500 text-white shadow' : 'text-slate-500 hover:bg-slate-50'}`}
+            className={`flex-1 md:flex-none px-6 py-2 rounded-md text-sm font-medium transition flex justify-center items-center gap-2 ${cardSide === 'rear' ? 'bg-emerald-500 text-white shadow' : 'text-slate-500 hover:bg-slate-50'}`}
           >
-            <FileImage size={16}/> Sisi Belakang
+            <FileImage size={16}/> Rear
           </button>
         </div>
+
+        {/* Tombol Print Desktop */}
         <button 
           onClick={() => window.print()} 
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition transform hover:-translate-y-0.5 active:translate-y-0"
+          className="hidden md:flex bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-600/30 items-center gap-2 transition transform hover:-translate-y-0.5 active:translate-y-0"
         >
           <Printer size={20}/> PRINT (Ctrl+P)
         </button>
@@ -548,13 +564,13 @@ function PrintPage({ student, onBack }) {
           </div>
           
           <p className="mt-4 text-center text-xs text-slate-400 font-medium print:hidden">
-            Pratinjau: <b>{cardSide === 'front' ? 'Sisi Depan' : 'Sisi Belakang'}</b>
+            Pratinjau: <b>{cardSide === 'front' ? 'Front' : 'Rear'}</b>
           </p>
         </div>
 
-        {/* SIDEBAR KONTROL (Hanya muncul jika Sisi Depan yang dipilih) */}
-        {cardSide === 'front' ? (
-          <div className="w-full md:w-80 space-y-6 print:hidden">
+        {/* SIDEBAR KONTROL */}
+        <div className="w-full md:w-80 space-y-6 print:hidden">
+          {cardSide === 'front' && (
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
               <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide">
                 <Upload size={16} className="text-emerald-500"/> Upload Foto
@@ -578,35 +594,34 @@ function PrintPage({ student, onBack }) {
               </div>
               <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" className="hidden" />
             </div>
+          )}
 
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Kalibrasi</h4>
-                <button onClick={() => { setOx(0); setOy(0); }} title="Reset" className="text-slate-400 hover:text-emerald-500 transition bg-slate-100 p-1.5 rounded-md">
-                  <RotateCcw size={14}/>
-                </button>
-              </div>
-              <div className="bg-slate-800 text-emerald-400 p-3 rounded-lg mb-4 text-center font-mono text-sm tracking-widest border border-slate-700 shadow-inner">
-                X: {ox} <span className="text-slate-600">|</span> Y: {oy}
-              </div>
-              <div className="grid grid-cols-3 gap-2 max-w-[160px] mx-auto">
-                <div></div>
-                <button onClick={() => nudge(0, -0.5)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowUp size={18}/></button>
-                <div></div>
-                <button onClick={() => nudge(-0.5, 0)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowLeft size={18}/></button>
-                <div className="flex items-center justify-center text-slate-300"><Printer size={16}/></div>
-                <button onClick={() => nudge(0.5, 0)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowRight size={18}/></button>
-                <div></div>
-                <button onClick={() => nudge(0, 0.5)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowDown size={18}/></button>
-                <div></div>
-              </div>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Kalibrasi</h4>
+              <button onClick={() => { setOx(0); setOy(0); }} title="Reset" className="text-slate-400 hover:text-emerald-500 transition bg-slate-100 p-1.5 rounded-md">
+                <RotateCcw size={14}/>
+              </button>
             </div>
+            <div className="bg-slate-800 text-emerald-400 p-3 rounded-lg mb-4 text-center font-mono text-sm tracking-widest border border-slate-700 shadow-inner">
+              X: {ox} <span className="text-slate-600">|</span> Y: {oy}
+            </div>
+            <div className="grid grid-cols-3 gap-2 max-w-[160px] mx-auto">
+              <div></div>
+              <button onClick={() => nudge(0, -0.5)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowUp size={18}/></button>
+              <div></div>
+              <button onClick={() => nudge(-0.5, 0)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowLeft size={18}/></button>
+              <div className="flex items-center justify-center text-slate-300"><Printer size={16}/></div>
+              <button onClick={() => nudge(0.5, 0)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowRight size={18}/></button>
+              <div></div>
+              <button onClick={() => nudge(0, 0.5)} className="p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center"><ArrowDown size={18}/></button>
+              <div></div>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-3 text-center italic">
+              *Gunakan panah bawah (↓) jika hasil cetak kurang ke bawah.
+            </p>
           </div>
-      ) : (
-          <div className="w-full md:w-80 space-y-6 print:hidden flex items-center justify-center text-slate-400 text-sm italic border-l pl-6">
-            Fitur edit (foto & kalibrasi) hanya tersedia untuk sisi depan kartu.
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
