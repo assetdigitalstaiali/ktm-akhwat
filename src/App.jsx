@@ -28,7 +28,7 @@ const CONFIG = {
     //p: getEnv('VITE_LOGIN_PASS', 'admin') 
   CREDENTIALS: { 
     u: getEnv('VITE_LOGIN_USER', getEnv('KTM_ADMIN_USERNAME')), 
-    p: getEnv('VITE_LOGIN_PASS', getEnv('KTM_ADMIN_PASSWORD') 
+    p: getEnv('VITE_LOGIN_PASS', getEnv('KTM_ADMIN_PASSWORD')) 
   }, 
   
   // Path gambar
@@ -488,7 +488,7 @@ function PrintPage({ student, onBack }) {
           `}</style>
 
           <div className="card-area" style={cardStyle}>
-            <img src="/img/KARTU_DEPAN.png" alt="Template Background" className="card-bg" onError={(e) => e.target.style.display='none'} />
+            <img src="/img/KARTU_FRONT.png" alt="Template Background" className="card-bg" onError={(e) => e.target.style.display='none'} />
             {photo ? (
               <img src={photo} className="card-photo" alt="Foto Siswa" />
             ) : (
