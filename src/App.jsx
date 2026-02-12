@@ -43,7 +43,7 @@ const CONFIG = {
     // saat width diset 85.6mm. (Rasio 1.58)
     h: 135.6, 
     // Posisi Foto (Sesuai Kalibrasi X:1, Y:8 -> 29, 62)
-    photo: { x: 29, y: 62, w: 27.5, h: 37, radius: 2 }
+    photo: { x: 27, y: 60, w: 32, h: 41, radius: 2 } 
   }
 };
 
@@ -520,8 +520,8 @@ function PrintPage({ student, onBack }) {
               position: absolute; left: var(--photo-x); top: var(--photo-y);
               width: var(--photo-w); height: var(--photo-h);
               border-radius: var(--photo-r); object-fit: cover;
-              border: 0.5mm solid #fff;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.25); background: #ddd;
+              object-fit: cover;
+              z-index: 10;
             }
             .card-txt {
               position: absolute; width: 100%; color: #ffffff;
@@ -531,10 +531,36 @@ function PrintPage({ student, onBack }) {
             @supports (-webkit-text-stroke: 1px black) {
               .card-txt { text-shadow: none; -webkit-text-stroke: 0.6px rgba(0,0,0,.85); }
             }
+              
             @media print {
-              body { background: white; margin: 0; }
-              .card-area { box-shadow: none; border-radius: 0; margin: 0; }
-              @page { margin: 0; size: auto; }
+              @page {
+                /* UKURAN PRESISI CR-80 KERTAS HITI */
+                size: 53.98mm 85.60mm; 
+                margin: 0; 
+              }
+              html, body { 
+                background: white; margin: 0; padding: 0;
+                width: 53.98mm !important; height: 85.60mm !important;
+                overflow: hidden !important;
+              }
+              .print-wrapper {
+                position: fixed !important;
+                top: 0 !important; left: 0 !important;
+                width: 53.98mm !important; height: 85.60mm !important;
+                overflow: hidden !important;
+                margin: 0 !important; padding: 0 !important;
+              }
+              .card-area { 
+                box-shadow: none !important; border-radius: 0 !important; margin: 0 !important;
+                width: var(--card-w) !important; height: var(--card-h) !important;
+                position: absolute !important; top: 0 !important; left: 0 !important;
+                
+                /* Trik untuk print pas di kertas HITI: Fit Scale otomatis */
+                transform: scale(0.6306, 0.6312) !important;
+                transform-origin: top left !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
             }
           `}</style>
 
@@ -587,7 +613,7 @@ function PrintPage({ student, onBack }) {
                 ) : (
                   <div className="text-slate-400 py-4">
                     <User className="mx-auto mb-2 text-emerald-200" size={32}/>
-                    <p className="text-sm font-medium text-slate-600">Klik cari foto</p>
+                    <p className="text-sm font-medium text-slate-600">Cari foto</p>
                     <p className="text-[10px] mt-1 text-slate-400">(Format JPG/PNG)</p>
                   </div>
                 )}
