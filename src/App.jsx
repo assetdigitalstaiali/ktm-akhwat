@@ -70,6 +70,22 @@ const getDynamicAngkatan = () => {
   return years;
 };
 
+// HELPER: Format Nama Panjang Menjadi Singkatan
+const formatName = (name) => {
+  if (!name) return '';
+  const words = name.trim().split(/\s+/);
+  
+  // Jika nama hanya 1 atau 2 kata, biarkan apa adanya
+  if (words.length <= 2) return name;
+  
+  // Menyingkat kata kedua, keempat, dst (index ganjil karena array mulai dari 0)
+  return words.map((word, index) => {
+    if (index === 0) return word; // Kata pertama selalu utuh
+    if (index % 2 !== 0) return word.charAt(0) + '.'; // Singkat kata ke-2, ke-4, dst.
+    return word; // Biarkan utuh kata ke-3, ke-5, dst.
+  }).join(' ');
+};
+
 const fetchStudents = async (tahun, nama = '') => {
   const token = generateToken();
   const params = new URLSearchParams({ q: token, t: tahun });
@@ -507,7 +523,7 @@ function PrintPage({ student, onBack }) {
       </div>
 
       <div className="flex flex-col md:flex-row gap-8 items-start print:block print:p-0">
-        <div className="relative print:m-0 print:absolute print:top-0 print:left-0">
+        <div className="relative print-wrapper">
           <style>{`
             .card-area {
               width: var(--card-w); height: var(--card-h);
@@ -519,7 +535,7 @@ function PrintPage({ student, onBack }) {
             .card-photo {
               position: absolute; left: var(--photo-x); top: var(--photo-y);
               width: var(--photo-w); height: var(--photo-h);
-              border-radius: var(--photo-r); object-fit: cover;
+              border-radius: var(--photo-r);
               object-fit: cover;
               z-index: 10;
             }
@@ -527,11 +543,13 @@ function PrintPage({ student, onBack }) {
               position: absolute; width: 100%; color: #ffffff;
               text-transform: uppercase; letter-spacing: 0.25px; mix-blend-mode: normal;
               text-shadow: -0.6px -0.6px 0 rgba(0,0,0,.85), 0.6px -0.6px 0 rgba(0,0,0,.85), -0.6px 0.6px 0 rgba(0,0,0,.85), 0.6px 0.6px 0 rgba(0,0,0,.85);
+              z-index: 20;
+              line-height: 1;
             }
             @supports (-webkit-text-stroke: 1px black) {
               .card-txt { text-shadow: none; -webkit-text-stroke: 0.6px rgba(0,0,0,.85); }
             }
-              
+
             @media print {
               @page {
                 /* UKURAN PRESISI CR-80 KERTAS HITI */
@@ -544,7 +562,7 @@ function PrintPage({ student, onBack }) {
                 overflow: hidden !important;
               }
               .print-wrapper {
-                position: fixed !important;
+                position: absolute !important; /* Ganti fixed jadi absolute agar tidak memicu halaman 2 */
                 top: 0 !important; left: 0 !important;
                 width: 53.98mm !important; height: 85.60mm !important;
                 overflow: hidden !important;
@@ -574,11 +592,11 @@ function PrintPage({ student, onBack }) {
                 ) : (
                   <div className="card-photo flex items-center justify-center text-xs text-gray-500 text-center p-2 bg-slate-200">No Photo</div>
                 )}
-                {/* UPDATE POSISI TEKS (Ditambah 8mm ke bawah sesuai kalibrasi Y:8) */}
-                <div className="card-txt" style={{ top: `calc(103mm + var(--oy))`, textAlign: 'center', fontSize: '3.8mm', fontWeight: 800 }}>{student.nim}</div>
-                <div className="card-txt" style={{ top: `calc(108mm + var(--oy))`, textAlign: 'center', fontSize: '3.6mm', fontWeight: 800 }}>{student.nama}</div>
-                <div className="card-txt" style={{ top: `calc(113mm + var(--oy))`, textAlign: 'center', fontSize: '3.2mm', fontWeight: 700 }}>{student.fakultas}</div>
-                <div className="card-txt" style={{ top: `calc(118mm + var(--oy))`, textAlign: 'center', fontSize: '3.2mm', fontWeight: 700 }}>{student.prodi}</div>
+                {/* DATA TEKS FIXED (Tanpa var(--oy) agar tidak ikut bergeser) dan Format Nama */}
+                <div className="card-txt" style={{ top: '103mm', textAlign: 'center', fontSize: '3.8mm', fontWeight: 800 }}>{student.nim}</div>
+                <div className="card-txt" style={{ top: '108mm', textAlign: 'center', fontSize: '3.6mm', fontWeight: 800 }}>{formatName(student.nama)}</div>
+                <div className="card-txt" style={{ top: '113mm', textAlign: 'center', fontSize: '3.2mm', fontWeight: 700 }}>{student.fakultas}</div>
+                <div className="card-txt" style={{ top: '118mm', textAlign: 'center', fontSize: '3.2mm', fontWeight: 700 }}>{student.prodi}</div>
               </>
             ) : (
               // === TAMPILAN BELAKANG ===
