@@ -44,13 +44,13 @@ Error generating stack: `+o.message+`
               border-radius: 6mm; overflow: hidden;
               box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             }
-            .card-bg { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 10; /* Background di atas foto */ }
+            .card-bg { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 1; /* Background di atas foto */ }
             .card-photo {
               position: absolute; left: var(--photo-x); top: var(--photo-y);
               width: var(--photo-w); height: var(--photo-h);
               border-radius: var(--photo-r);
               object-fit: cover;
-              z-index: 0;
+              z-index: 10;
               border: 0.5mm solid #cbd5e1; /* Bingkai tipis */
             }
             .card-txt {
