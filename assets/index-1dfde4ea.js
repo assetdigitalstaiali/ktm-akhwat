@@ -44,13 +44,14 @@ Error generating stack: `+o.message+`
               border-radius: 6mm; overflow: hidden;
               box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             }
-            .card-bg { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+            .card-bg { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 10; /* Background di atas foto */ }
             .card-photo {
               position: absolute; left: var(--photo-x); top: var(--photo-y);
               width: var(--photo-w); height: var(--photo-h);
               border-radius: var(--photo-r);
               object-fit: cover;
-              z-index: 10;
+              z-index: 0;
+              border: 0.5mm solid #cbd5e1; /* Bingkai tipis */
             }
             .card-txt {
               position: absolute; width: 100%; color: #ffffff;
@@ -73,6 +74,7 @@ Error generating stack: `+o.message+`
                 background: white; margin: 0; padding: 0;
                 width: 53.98mm !important; height: 85.60mm !important;
                 overflow: hidden !important;
+                box-sizing: border-box;
               }
               .print-wrapper {
                 position: absolute !important; /* Ganti fixed jadi absolute agar tidak memicu halaman 2 */
@@ -91,6 +93,7 @@ Error generating stack: `+o.message+`
                 transform-origin: top left !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
+                page-break-inside: avoid;
               }
             }
           `}),p.jsx("div",{className:"card-area",style:k,children:s==="front"?p.jsxs(p.Fragment,{children:[p.jsx("img",{src:de.CARD_IMG_FRONT,alt:"KTM Depan",className:"card-bg",onError:w=>w.target.style.display="none"}),i?p.jsx("img",{src:i,className:"card-photo",alt:"Foto Siswa"}):p.jsx("div",{className:"card-photo flex items-center justify-center text-xs text-gray-500 text-center p-2 bg-slate-200",children:"No Photo"}),p.jsx("div",{className:"card-txt",style:{top:"103mm",textAlign:"center",fontSize:"3.8mm",fontWeight:800},children:e.nim}),p.jsx("div",{className:"card-txt",style:{top:"108mm",textAlign:"center",fontSize:"3.6mm",fontWeight:800},children:tp(e.nama)}),p.jsx("div",{className:"card-txt",style:{top:"113mm",textAlign:"center",fontSize:"3.2mm",fontWeight:700},children:e.fakultas}),p.jsx("div",{className:"card-txt",style:{top:"118mm",textAlign:"center",fontSize:"3.2mm",fontWeight:700},children:e.prodi})]}):p.jsx(p.Fragment,{children:p.jsx("img",{src:de.CARD_IMG_REAR,alt:"KTM Belakang",className:"card-bg",onError:w=>w.target.style.display="none"})})}),p.jsxs("p",{className:"mt-4 text-center text-xs text-slate-400 font-medium print:hidden",children:["Pratinjau: ",p.jsx("b",{children:s==="front"?"Front":"Rear"})]})]}),p.jsxs("div",{className:"w-full md:w-80 space-y-6 print:hidden",children:[s==="front"&&p.jsxs("div",{className:"bg-white p-6 rounded-2xl shadow-sm border border-slate-100",children:[p.jsxs("h4",{className:"font-bold text-slate-700 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide",children:[p.jsx(qf,{size:16,className:"text-emerald-500"})," Upload Foto"]}),p.jsx("div",{onClick:()=>{var w;return(w=v.current)==null?void 0:w.click()},className:"border-2 border-dashed border-emerald-200 rounded-xl p-6 text-center cursor-pointer hover:bg-emerald-50/50 hover:border-emerald-400 transition group",children:i?p.jsxs("div",{className:"space-y-3",children:[p.jsx("img",{src:i,className:"w-24 h-32 object-cover mx-auto rounded-lg shadow-md group-hover:scale-105 transition"}),p.jsx("p",{className:"text-xs text-emerald-600 font-bold bg-emerald-100 inline-block px-2 py-1 rounded",children:"Ganti Foto"})]}):p.jsxs("div",{className:"text-slate-400 py-4",children:[p.jsx(sc,{className:"mx-auto mb-2 text-emerald-200",size:32}),p.jsx("p",{className:"text-sm font-medium text-slate-600",children:"Cari foto"}),p.jsx("p",{className:"text-[10px] mt-1 text-slate-400",children:"(Format JPG/PNG)"})]})}),p.jsx("input",{type:"file",ref:v,onChange:h,accept:"image/*",className:"hidden"})]}),p.jsxs("div",{className:"bg-white p-6 rounded-2xl shadow-sm border border-slate-100",children:[p.jsxs("div",{className:"flex justify-between items-center mb-4",children:[p.jsx("h4",{className:"font-bold text-slate-700 text-sm uppercase tracking-wide",children:"Kalibrasi"}),p.jsx("button",{onClick:()=>{r(0),o(0)},title:"Reset",className:"text-slate-400 hover:text-emerald-500 transition bg-slate-100 p-1.5 rounded-md",children:p.jsx(Jf,{size:14})})]}),p.jsxs("div",{className:"bg-slate-800 text-emerald-400 p-3 rounded-lg mb-4 text-center font-mono text-sm tracking-widest border border-slate-700 shadow-inner",children:["X: ",n," ",p.jsx("span",{className:"text-slate-600",children:"|"})," Y: ",l]}),p.jsxs("div",{className:"grid grid-cols-3 gap-2 max-w-[160px] mx-auto",children:[p.jsx("div",{}),p.jsx("button",{onClick:()=>m(0,-.5),className:"p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center",children:p.jsx(Wf,{size:18})}),p.jsx("div",{}),p.jsx("button",{onClick:()=>m(-.5,0),className:"p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center",children:p.jsx(Gu,{size:18})}),p.jsx("div",{className:"flex items-center justify-center text-slate-300",children:p.jsx(Rr,{size:16})}),p.jsx("button",{onClick:()=>m(.5,0),className:"p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center",children:p.jsx(Hf,{size:18})}),p.jsx("div",{}),p.jsx("button",{onClick:()=>m(0,.5),className:"p-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-emerald-500 hover:text-white transition shadow-sm active:scale-95 flex justify-center",children:p.jsx(Bf,{size:18})}),p.jsx("div",{})]}),p.jsx("p",{className:"text-[10px] text-slate-400 mt-3 text-center italic",children:"*Gunakan panah bawah (↓) jika hasil cetak kurang ke bawah."})]})]})]})]})}Yl.createRoot(document.getElementById("root")).render(p.jsx(_c.StrictMode,{children:p.jsx(rp,{})}));
