@@ -531,13 +531,14 @@ function PrintPage({ student, onBack }) {
               border-radius: 6mm; overflow: hidden;
               box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             }
-            .card-bg { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+            .card-bg { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 10; /* Background di atas foto */ }
             .card-photo {
               position: absolute; left: var(--photo-x); top: var(--photo-y);
               width: var(--photo-w); height: var(--photo-h);
               border-radius: var(--photo-r);
               object-fit: cover;
-              z-index: 10;
+              z-index: 0;
+              border: 0.5mm solid #cbd5e1; /* Bingkai tipis */
             }
             .card-txt {
               position: absolute; width: 100%; color: #ffffff;
@@ -560,6 +561,7 @@ function PrintPage({ student, onBack }) {
                 background: white; margin: 0; padding: 0;
                 width: 53.98mm !important; height: 85.60mm !important;
                 overflow: hidden !important;
+                box-sizing: border-box;
               }
               .print-wrapper {
                 position: absolute !important; /* Ganti fixed jadi absolute agar tidak memicu halaman 2 */
@@ -578,6 +580,7 @@ function PrintPage({ student, onBack }) {
                 transform-origin: top left !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
+                page-break-inside: avoid;
               }
             }
           `}</style>
