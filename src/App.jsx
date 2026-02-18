@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Printer, Upload, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, RotateCcw, LogOut,
-  Loader2, AlertCircle, User, Lock, Heart, FileImage, CreditCard } from 'lucide-react';
+  Loader2, AlertCircle, User, Lock, Heart, FileImage, CreditCard,
+  Scan, CheckCircle, XCircle } from 'lucide-react';
 
 /**
  * HELPER: Safe Environment Variable Access
@@ -58,6 +59,16 @@ const generateToken = () => {
   return `51${m}${y}${d}55`;
 };
 
+// HELPER: Membersihkan Kode RFID dari Mesin
+// Logic: Ambil bagian setelah 6 karakter pertama, buang 1 karakter terakhir, hapus strip (-)
+const cleanRFID = (raw) => {
+  if (!raw || raw.length <= 7) return raw;
+  // substr($rfid, 6, -1) equivalent in JS
+  let cut = raw.slice(6, -1);
+  // str_replace('-', '', $cut) equivalent in JS
+  return cut.replace(/-/g, '');
+};
+
 // Generate Dynamic Angkatan (Current Year down to 2022)
 const getDynamicAngkatan = () => {
   const currentYearFull = new Date().getFullYear();
@@ -84,6 +95,36 @@ const formatName = (name) => {
     if (index % 2 !== 0) return word.charAt(0) + '.'; // Singkat kata ke-2, ke-4, dst.
     return word; // Biarkan utuh kata ke-3, ke-5, dst.
   }).join(' ');
+};
+
+// API: Registrasi KTM
+const registerKTM = async (nim, rawRfid) => {
+  const token = generateToken();
+  const cleanCode = cleanRFID(rawRfid);
+  
+  // Persiapan Data POST
+  const formData = new URLSearchParams();
+  formData.append('kd', 'rgk');
+  formData.append('q', token);
+  formData.append('n', nim);
+  formData.append('r', cleanCode);
+
+  try {
+    const response = await fetch(CONFIG.API_BASE, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData.toString()
+    });
+
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+    const text = await response.text(); // Response backend berupa plain text
+    return text;
+  } catch (err) {
+    console.error("Register Error:", err);
+    throw err;
+  }
 };
 
 const fetchStudents = async (tahun, nama = '') => {
@@ -439,12 +480,48 @@ function PrintPage({ student, onBack }) {
   const [cardSide, setCardSide] = useState('front'); // 'front' | 'rear'
   const fileInputRef = useRef(null);
 
+  // --- STATE REGISTRASI ---
+  const [showRegModal, setShowRegModal] = useState(false);
+  const [rfidInput, setRfidInput] = useState('');
+  const [regStatus, setRegStatus] = useState('idle'); // idle, loading, success, error
+  const [regMessage, setRegMessage] = useState('');
+  const rfidInputRef = useRef(null);
+
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => setPhoto(reader.result);
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault();
+    if (!rfidInput) return;
+
+    setRegStatus('loading');
+    setRegMessage('');
+
+    try {
+      // Panggil API Register
+      const result = await registerKTM(student.nim, rfidInput);
+      
+      // Cek response string dari backend untuk menentukan sukses/gagal
+      if (result.includes('sukses registrasi')) {
+        setRegStatus('success');
+      } else {
+        setRegStatus('error');
+      }
+      setRegMessage(result);
+      setRfidInput(''); // Clear input untuk scan berikutnya
+      
+      // Auto focus kembali ke input jika scanner cepat
+      setTimeout(() => rfidInputRef.current?.focus(), 100);
+
+    } catch (err) {
+      setRegStatus('error');
+      setRegMessage('Gagal terhubung ke server. Cek koneksi internet.');
     }
   };
 
@@ -455,6 +532,9 @@ function PrintPage({ student, onBack }) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Disable nudge saat modal registrasi terbuka agar tidak bentrok dengan scanner
+      if (showRegModal) return; 
+
       const step = e.shiftKey ? 0.5 : 0.2;
       if (e.key === 'ArrowUp') { e.preventDefault(); nudge(0, -step); }
       if (e.key === 'ArrowDown') { e.preventDefault(); nudge(0, step); }
@@ -463,7 +543,14 @@ function PrintPage({ student, onBack }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [showRegModal]); // Dependency showRegModal penting
+
+  // Auto focus input saat modal dibuka
+  useEffect(() => {
+    if (showRegModal && rfidInputRef.current) {
+        rfidInputRef.current.focus();
+    }
+  }, [showRegModal]);
 
   const cardStyle = {
     '--card-w': `${CONFIG.CARD.w}mm`,
@@ -617,6 +704,24 @@ function PrintPage({ student, onBack }) {
 
         {/* SIDEBAR KONTROL */}
         <div className="w-full md:w-80 space-y-6 print:hidden">
+          {/* PANEL REGISTRASI (NEW) */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl shadow-sm border border-blue-100 relative overflow-hidden">
+             <div className="absolute top-0 right-0 p-2 opacity-10"><Scan size={64} color="#3b82f6"/></div>
+             <h4 className="font-bold text-blue-800 mb-2 flex items-center gap-2 text-sm uppercase tracking-wide">
+                <Scan size={16}/> Registrasi Kartu
+             </h4>
+             <p className="text-[10px] text-blue-600 mb-4 leading-tight">
+               Scan kartu pada alat RFID reader untuk mendaftarkan <b>{student.nama}</b>
+             </p>
+             <button 
+                onClick={() => setShowRegModal(true)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-bold shadow-md shadow-blue-500/20 transition flex justify-center items-center gap-2"
+             >
+                <Scan size={18}/> SCAN REGISTER
+             </button>
+          </div>
+
+          {/* UPLOAD FOTO */}
           {cardSide === 'front' && (
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
               <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide">
@@ -670,6 +775,68 @@ function PrintPage({ student, onBack }) {
           </div>
         </div>
       </div>
+      {/* MODAL REGISTRASI */}
+      {showRegModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm print:hidden">
+           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="bg-blue-600 px-6 py-4 flex justify-between items-center">
+                 <h3 className="text-white font-bold text-lg flex items-center gap-2"><Scan size={20}/> Scan Kartu RFID</h3>
+                 <button onClick={() => setShowRegModal(false)} className="text-blue-200 hover:text-white"><RotateCcw size={20} className="rotate-45"/></button>
+              </div>
+              
+              <div className="p-8">
+                 <div className="text-center mb-6">
+                    <p className="text-sm text-slate-500 mb-1">Silakan tempelkan kartu pada alat reader.</p>
+                    <p className="font-bold text-slate-800 text-lg">{student.nama}</p>
+                    <p className="text-xs font-mono bg-slate-100 inline-block px-2 py-1 rounded mt-1 text-slate-500">{student.nim}</p>
+                 </div>
+
+                 <form onSubmit={handleRegisterSubmit}>
+                    <div className="relative mb-6">
+                       <input 
+                          ref={rfidInputRef}
+                          type="text" 
+                          value={rfidInput}
+                          onChange={(e) => setRfidInput(e.target.value)}
+                          className="w-full px-4 py-3 border-2 border-blue-100 rounded-xl focus:border-blue-500 focus:ring-0 outline-none text-center font-mono text-lg tracking-widest text-blue-900 placeholder:text-blue-200 transition"
+                          placeholder="...Menunggu Scan..."
+                          autoFocus
+                          autoComplete="off"
+                       />
+                       <div className="absolute right-3 top-3.5 animate-pulse text-blue-400"><Scan size={20}/></div>
+                    </div>
+
+                    {/* STATUS MESSAGE */}
+                    {regStatus === 'loading' && (
+                        <div className="text-center py-4 text-blue-600 flex flex-col items-center gap-2">
+                           <Loader2 className="animate-spin" size={24}/> Memproses Data...
+                        </div>
+                    )}
+
+                    {regStatus === 'success' && (
+                        <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center mb-4">
+                           <div className="flex justify-center mb-2 text-green-500"><CheckCircle size={32}/></div>
+                           <p className="text-green-800 font-bold text-sm">{regMessage}</p>
+                        </div>
+                    )}
+
+                    {regStatus === 'error' && (
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center mb-4">
+                           <div className="flex justify-center mb-2 text-red-500"><XCircle size={32}/></div>
+                           <p className="text-red-800 font-bold text-sm">{regMessage}</p>
+                        </div>
+                    )}
+
+                    {/* Button hidden because scanner usually presses Enter, but keep for manual click */}
+                    <button type="submit" className="hidden">Submit</button>
+                 </form>
+              </div>
+              <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end">
+                 <button onClick={() => setShowRegModal(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-200 rounded-lg text-sm font-bold transition">Tutup</button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 }
