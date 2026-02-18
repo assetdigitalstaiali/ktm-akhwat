@@ -59,6 +59,30 @@ const generateToken = () => {
   return `51${m}${y}${d}55`;
 };
 
+// HELPER: Sanitasi Input Ganda (Bouncing)
+// Mengambil segmen terakhir jika scanner mengirim data ganda (misal: -CODE--CODE-)
+const sanitizeInput = (val) => {
+  if (!val) return "";
+  // Asumsi pola scanner diawali '-' dan diakhiri '-'
+  // Jika ada dobel '--', kita split dan ambil yang terakhir yang tidak kosong
+  const parts = val.split('--'); 
+  let lastPart = parts[parts.length - 1];
+  
+  // Jika hasil split terakhir tidak punya suffix '-', kita cek part sebelumnya (kasus string kotor)
+  if (!lastPart.endsWith('-') && parts.length > 1) {
+     lastPart = parts[parts.length - 1]; // Fallback, biasanya scanner konsisten
+  }
+  
+  // Pastikan format minimal ada (start with - or part of it)
+  // Jika format rusak, kembalikan value asli untuk diproses cleanRFID
+  if (parts.length > 1) {
+      // Rekonstruksi jika split membuang dash pembuka/penutup
+      if (!lastPart.startsWith('-')) lastPart = '-' + lastPart;
+  }
+  
+  return lastPart || val;
+};
+
 // HELPER: Membersihkan Kode RFID dari Mesin
 // Logic: Ambil bagian setelah 6 karakter pertama, buang 1 karakter terakhir, hapus strip (-)
 const cleanRFID = (raw) => {
@@ -105,7 +129,7 @@ const mapBackendMessage = (rawMsg) => {
 
   // 1. Invalid Token
   if (lowerMsg.includes("invalid token") || lowerMsg.includes("wuik")) {
-    return { msg: "Token otentikasi tidak valid. Mohon refresh halaman atau hubungi IT.", status: 'error', canReset: false };
+    return { msg: "Token otentikasi tidak valid. Mohon refresh halaman atau hubungi admin Akhwat.", status: 'error', canReset: false };
   }
   
   // 2. Salah NIM
@@ -135,10 +159,10 @@ const mapBackendMessage = (rawMsg) => {
 // API: Registrasi KTM (Support mode 'rgk' untuk daftar, 'rgx' untuk hapus/reset)
 const registerKTM = async (nim, rawRfid, mode = 'rgk') => {
   const token = generateToken();
-  const cleanCode = cleanRFID(rawRfid);
+  const cleanCode = cleanRFID(sanitizeInput(rawRfid)); // Sanitasi ganda
   
   const formData = new URLSearchParams();
-  formData.append('kd', mode); // rgk = register, rgx = delete/reset
+  formData.append('kd', mode); // rgk = register, rgkx = delete/reset
   formData.append('q', token);
   formData.append('n', nim);
   formData.append('r', cleanCode);
@@ -542,6 +566,9 @@ function PrintPage({ student, onBack }) {
       if (forceReset) {
          setRegMessage('Menghapus data lama...');
          await registerKTM(student.nim, rfidInput, 'rgkx'); // Hapus
+         // Jeda sejenak (800ms) untuk memastikan DB sync/hapus selesai
+         await new Promise(resolve => setTimeout(resolve, 800));
+
          setRegMessage('Mendaftarkan kartu baru...');
       }
 
@@ -589,6 +616,9 @@ function PrintPage({ student, onBack }) {
   useEffect(() => {
     if (showRegModal && rfidInputRef.current) {
         rfidInputRef.current.focus();
+        setRfidInput(''); // Clear input saat modal dibuka
+        setRegStatus('idle');
+        setCanReRegister(false);
     }
   }, [showRegModal]);
 
@@ -838,46 +868,47 @@ function PrintPage({ student, onBack }) {
                           ref={rfidInputRef}
                           type="text" 
                           value={rfidInput}
-                          onChange={(e) => setRfidInput(e.target.value)}
-                          className="w-full px-4 py-3 border-2 border-blue-100 rounded-xl focus:border-blue-500 focus:ring-0 outline-none text-center font-mono text-lg tracking-widest text-blue-900 placeholder:text-blue-200 transition"
+                          onChange={(e) => setRfidInput(sanitizeInput(e.target.value))}
+                          disabled={regStatus === 'loading'}
+                          className="w-full px-4 py-3 border-2 border-blue-100 rounded-xl focus:border-blue-500 focus:ring-0 outline-none text-center font-mono text-lg tracking-widest text-blue-900 placeholder:text-blue-200 transition disabled:bg-slate-100 disabled:text-slate-400"
                           placeholder="...Menunggu Scan..."
                           autoFocus
                           autoComplete="off"
                        />
-                       <div className="absolute right-3 top-3.5 animate-pulse text-blue-400"><Scan size={20}/></div>
+                       {regStatus === 'loading' ? (
+                          <div className="absolute right-3 top-3.5"><Loader2 className="animate-spin text-blue-500" size={20}/></div>
+                       ) : (
+                          <div className="absolute right-3 top-3.5 animate-pulse text-blue-400"><Scan size={20}/></div>
+                       )}
                     </div>
 
                     {/* STATUS MESSAGE */}
-                    {regStatus === 'loading' && (
-                        <div className="text-center py-4 text-blue-600 flex flex-col items-center gap-2">
-                           <Loader2 className="animate-spin" size={24}/> Memproses Data...
-                        </div>
-                    )}
-
                     {regStatus === 'success' && (
-                        <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center mb-4">
+                        <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center mb-4 animate-in fade-in slide-in-from-top-2">
                            <div className="flex justify-center mb-2 text-green-500"><CheckCircle size={32}/></div>
                            <p className="text-green-800 font-bold text-sm">{regMessage}</p>
                         </div>
                     )}
 
-                    {regStatus === 'error' || regStatus === 'warning' ? (
-                        <div className={`border rounded-xl p-4 text-center mb-4 ${regStatus === 'error' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+                    {(regStatus === 'error' || regStatus === 'warning') && (
+                        <div className={`border rounded-xl p-4 text-center mb-4 animate-in fade-in slide-in-from-top-2 ${regStatus === 'error' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
                            <div className={`flex justify-center mb-2 ${regStatus === 'error' ? 'text-red-500' : 'text-amber-500'}`}><XCircle size={32}/></div>
                            <p className={`${regStatus === 'error' ? 'text-red-800' : 'text-amber-800'} font-bold text-sm`}>{regMessage}</p>
                            
-                           {/* TOMBOL RE-REGISTER (Hapus Record Lama & Daftar Baru) */}
+                           {/* TOMBOL RE-REGISTER */}
                            {canReRegister && (
                              <button 
                                type="button"
                                onClick={(e) => handleRegisterSubmit(e, true)}
-                               className="mt-3 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 w-full transition"
+                               disabled={regStatus === 'loading'}
+                               className="mt-3 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 w-full transition disabled:opacity-50"
                              >
-                               <RefreshCw size={14}/> RESET & DAFTAR ULANG
+                               {regStatus === 'loading' ? <Loader2 className="animate-spin" size={14}/> : <RefreshCw size={14}/>} 
+                               RESET & DAFTAR ULANG
                              </button>
                            )}
                         </div>
-                    ) : null}
+                    )}
 
                     {/* Button hidden because scanner usually presses Enter, but keep for manual click */}
                     <button type="submit" className="hidden">Submit</button>
