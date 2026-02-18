@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Printer, Upload, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, RotateCcw, LogOut,
   Loader2, AlertCircle, User, Lock, Heart, FileImage, CreditCard,
-  Scan, CheckCircle, XCircle } from 'lucide-react';
+  Scan, CheckCircle, XCircle, RefreshCw  } from 'lucide-react';
 
 /**
  * HELPER: Safe Environment Variable Access
@@ -97,14 +97,48 @@ const formatName = (name) => {
   }).join(' ');
 };
 
-// API: Registrasi KTM
-const registerKTM = async (nim, rawRfid) => {
+// --- MAPPING PESAN ERROR ---
+const mapBackendMessage = (rawMsg) => {
+  if (!rawMsg) return { msg: "Tidak ada respon dari server.", status: 'error', canReset: false };
+  
+  const lowerMsg = rawMsg.toLowerCase();
+
+  // 1. Invalid Token
+  if (lowerMsg.includes("invalid token") || lowerMsg.includes("wuik")) {
+    return { msg: "Token otentikasi tidak valid. Mohon refresh halaman atau hubungi IT.", status: 'error', canReset: false };
+  }
+  
+  // 2. Salah NIM
+  if (lowerMsg.includes("salah nim") || lowerMsg.includes("yee")) {
+    return { msg: "Mohon maaf NIM tidak dikenali, silahkan hubungi bagian akademik BAAK.", status: 'error', canReset: false };
+  }
+
+  // 3. Sudah Register (Kartu ini sudah dipakai user ini)
+  if (lowerMsg.includes("sudah diregister kok") || lowerMsg.includes("loh")) {
+    return { msg: "Kartu ini sudah terdaftar aktif untuk mahasiswa ini.", status: 'warning', canReset: true };
+  }
+
+  // 4. Sudah Register Kartu Lain (User ini punya kartu lain)
+  if (lowerMsg.includes("sudah diregister dgn kartu lain") || lowerMsg.includes("hlaa")) {
+    return { msg: "Mahasiswa ini sudah terdaftar dengan kartu lain sebelumnya.", status: 'warning', canReset: true };
+  }
+
+  // 5. Sukses
+  if (lowerMsg.includes("sukses")) {
+    return { msg: "Registrasi Berhasil! Kartu telah aktif.", status: 'success', canReset: false };
+  }
+
+  // Default Fallback
+  return { msg: rawMsg, status: 'info', canReset: false };
+};
+
+// API: Registrasi KTM (Support mode 'rgk' untuk daftar, 'rgx' untuk hapus/reset)
+const registerKTM = async (nim, rawRfid, mode = 'rgk') => {
   const token = generateToken();
   const cleanCode = cleanRFID(rawRfid);
   
-  // Persiapan Data POST
   const formData = new URLSearchParams();
-  formData.append('kd', 'rgk');
+  formData.append('kd', mode); // rgk = register, rgx = delete/reset
   formData.append('q', token);
   formData.append('n', nim);
   formData.append('r', cleanCode);
@@ -112,9 +146,7 @@ const registerKTM = async (nim, rawRfid) => {
   try {
     const response = await fetch(CONFIG.API_BASE, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: formData.toString()
     });
 
@@ -485,6 +517,7 @@ function PrintPage({ student, onBack }) {
   const [rfidInput, setRfidInput] = useState('');
   const [regStatus, setRegStatus] = useState('idle'); // idle, loading, success, error
   const [regMessage, setRegMessage] = useState('');
+  const [canReRegister, setCanReRegister] = useState(false); // State untuk tombol Reset
   const rfidInputRef = useRef(null);
 
   const handlePhotoUpload = (e) => {
@@ -496,27 +529,34 @@ function PrintPage({ student, onBack }) {
     }
   };
 
-  const handleRegisterSubmit = async (e) => {
-    e.preventDefault();
-    if (!rfidInput) return;
+  const handleRegisterSubmit = async (e, forceReset = false) => {
+    if (e) e.preventDefault();
+    if (!rfidInput && !forceReset) return; // Butuh input jika bukan force reset (tapi force reset juga butuh sih sbnrnya utk re-register)
 
     setRegStatus('loading');
     setRegMessage('');
+    setCanReRegister(false);
 
     try {
-      // Panggil API Register
-      const result = await registerKTM(student.nim, rfidInput);
-      
-      // Cek response string dari backend untuk menentukan sukses/gagal
-      if (result.includes('sukses registrasi')) {
-        setRegStatus('success');
-      } else {
-        setRegStatus('error');
+      // Jika mode reset, panggil rgkx dulu, baru rgk
+      if (forceReset) {
+         setRegMessage('Menghapus data lama...');
+         await registerKTM(student.nim, rfidInput, 'rgkx'); // Hapus
+         setRegMessage('Mendaftarkan kartu baru...');
       }
-      setRegMessage(result);
-      setRfidInput(''); // Clear input untuk scan berikutnya
+
+      // Register (rgk)
+      const resultRaw = await registerKTM(student.nim, rfidInput, 'rgk');
+      const { msg, status, canReset } = mapBackendMessage(resultRaw);
       
-      // Auto focus kembali ke input jika scanner cepat
+      setRegStatus(status);
+      setRegMessage(msg);
+      setCanReRegister(canReset); // Tampilkan tombol reset jika konflik
+
+      if (status === 'success') {
+        setRfidInput(''); // Clear input untuk scan berikutnya
+      }
+      
       setTimeout(() => rfidInputRef.current?.focus(), 100);
 
     } catch (err) {
@@ -609,7 +649,8 @@ function PrintPage({ student, onBack }) {
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8 items-start print:block print:p-0">
+      {/* --- FLEX CONTAINER UTAMA: items-center (mobile) -> items-start (desktop) --- */}
+      <div className="flex flex-col md:flex-row gap-8 items-center md:items-start print:block print:p-0">
         <div className="relative print-wrapper">
           <style>{`
             .card-area {
@@ -791,7 +832,7 @@ function PrintPage({ student, onBack }) {
                     <p className="text-xs font-mono bg-slate-100 inline-block px-2 py-1 rounded mt-1 text-slate-500">{student.nim}</p>
                  </div>
 
-                 <form onSubmit={handleRegisterSubmit}>
+                 <form onSubmit={(e) => handleRegisterSubmit(e, false)}>
                     <div className="relative mb-6">
                        <input 
                           ref={rfidInputRef}
@@ -820,12 +861,23 @@ function PrintPage({ student, onBack }) {
                         </div>
                     )}
 
-                    {regStatus === 'error' && (
-                        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center mb-4">
-                           <div className="flex justify-center mb-2 text-red-500"><XCircle size={32}/></div>
-                           <p className="text-red-800 font-bold text-sm">{regMessage}</p>
+                    {regStatus === 'error' || regStatus === 'warning' ? (
+                        <div className={`border rounded-xl p-4 text-center mb-4 ${regStatus === 'error' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+                           <div className={`flex justify-center mb-2 ${regStatus === 'error' ? 'text-red-500' : 'text-amber-500'}`}><XCircle size={32}/></div>
+                           <p className={`${regStatus === 'error' ? 'text-red-800' : 'text-amber-800'} font-bold text-sm`}>{regMessage}</p>
+                           
+                           {/* TOMBOL RE-REGISTER (Hapus Record Lama & Daftar Baru) */}
+                           {canReRegister && (
+                             <button 
+                               type="button"
+                               onClick={(e) => handleRegisterSubmit(e, true)}
+                               className="mt-3 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 w-full transition"
+                             >
+                               <RefreshCw size={14}/> RESET & DAFTAR ULANG
+                             </button>
+                           )}
                         </div>
-                    )}
+                    ) : null}
 
                     {/* Button hidden because scanner usually presses Enter, but keep for manual click */}
                     <button type="submit" className="hidden">Submit</button>
